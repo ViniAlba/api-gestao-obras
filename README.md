@@ -19,6 +19,7 @@ API RESTful para gerenciamento de obras, desenvolvida com Node.js, TypeScript, E
 - PostgreSQL
 - JWT para autenticação
 - Swagger para documentação
+- Jest para testes unitários
 
 ## Instalação
 
