@@ -1,11 +1,9 @@
 import 'reflect-metadata';
 import express from 'express';
 import cors from 'cors';
-import { router } from '../src/routes'; // Importamos o nosso roteador principal
+import { router } from '../src/routes';
 import swaggerUi from 'swagger-ui-express';
 
-// Importa o arquivo de especificação (assumindo que está na raiz)
-// O require() deve ser feito para carregar o JSON corretamente
 const swaggerDocument = require('../swagger.json');
 
 
@@ -28,10 +26,8 @@ class App {
    * - JSON: Habilita o Express a processar corpos de requisição em formato JSON.
    */
   private middlewares(): void {
-    // Configuração básica do CORS (permite todas as origens por enquanto)
     this.app.use(cors()); 
     
-    // Middleware para parsear o corpo da requisição como JSON
     this.app.use(express.json());
   }
 
@@ -41,13 +37,10 @@ class App {
    * As rotas reais (ex: /empreiteiras) serão definidas no arquivo 'routes/index.ts'.
    */
   private routes(): void {
-    // Rota de Documentação (Acessível sem autenticação)
     this.app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
-    // A rota base da nossa API
     this.app.use('/api/v1', router);
     
-    // Rota de saúde (Health Check)
     this.app.get('/api/v1/health', (req, res) => {
       res.status(200).json({ status: 'OK', uptime: process.uptime() });
     });
@@ -57,7 +50,6 @@ class App {
    * @description Configura um middleware para lidar com erros e rotas não encontradas (404).
    */
   private errorHandling(): void {
-    // Middleware para rotas não encontradas (404)
     this.app.use((req, res, next) => {
       res.status(404).json({ 
         success: false, 
@@ -65,7 +57,6 @@ class App {
       });
     });
 
-    // Middleware de tratamento de erros (catch-all)
     this.app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
       console.error(err.stack);
       res.status(500).json({ 
@@ -77,7 +68,4 @@ class App {
   }
 }
 
-// Exporta a instância do Express app
 export default new App().app;
-
-// Nota: A rota de documentação será acessível em http://localhost:PORT/api-docs

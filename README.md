@@ -39,7 +39,18 @@ cp .env.example .env
 # Edite o arquivo .env com suas configurações
 ```
 
-4. Inicie o servidor de desenvolvimento
+4. Crie um banco de dados no postgres com o nome "gestao_obras"
+```sql
+CREATE DATABASE gestao_obras;
+```
+
+5. Gere a migration do typeorm e, em seguida, inicialize-a
+```bash
+npm run typeorm:migration:generate
+npm run typeorm:migration:run
+```
+
+6. Inicie o servidor de desenvolvimento
 ```bash
 npm run dev
 ```

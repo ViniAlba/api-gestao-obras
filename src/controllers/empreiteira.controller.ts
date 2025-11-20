@@ -1,6 +1,5 @@
 import { Request, Response } from 'express';
 import { EmpreiteiraRepository } from '../repositories/empreiteira.repository';
-import { AppDataSource } from '../datasource';
 import { Empreiteira } from '../models/empreiteira.model';
 
 /**
@@ -8,12 +7,10 @@ import { Empreiteira } from '../models/empreiteira.model';
  * para a entidade Empreiteira.
  */
 export class EmpreiteiraController {
-  // Instância do repositório, facilitando o acesso aos métodos de DB
   private empreiteiraRepository: EmpreiteiraRepository;
 
-  constructor() {
-  // É uma boa prática inicializar o repositório TypeORM na classe
-    this.empreiteiraRepository = new EmpreiteiraRepository();
+  constructor(repository?: EmpreiteiraRepository) {
+    this.empreiteiraRepository = repository || new EmpreiteiraRepository();
   }
 
   /**
@@ -24,24 +21,18 @@ export class EmpreiteiraController {
     try {
       const empreiteiraData = req.body;
       
-      // Validação básica de campos obrigatórios
       if (!empreiteiraData.cnpjCpf || !empreiteiraData.nome || !empreiteiraData.email) {
         res.status(400).json({ success: false, message: 'Dados incompletos. CNPJ/CPF, nome e email são obrigatórios.' });
         return;
       }
 
-      // Cria a instância da entidade e popula com os dados
       const novaEmpreiteira = this.empreiteiraRepository.create(empreiteiraData as Empreiteira);
-      
-      // Salva a entidade no banco de dados
       await this.empreiteiraRepository.save(novaEmpreiteira);
 
-      // Retorna 201 Created com o recurso criado
       res.status(201).json({ success: true, data: novaEmpreiteira });
       
     } catch (error: any) {
       console.error('Erro ao criar empreiteira:', error);
-      // Lidar com erro de duplicidade (ex: CNPJ/CPF ou email já existe)
       if (error.code === '23505') { 
         res.status(400).json({ success: false, message: 'CNPJ/CPF ou Email já cadastrado.' });
         return;
@@ -71,7 +62,12 @@ export class EmpreiteiraController {
   public async findOne(req: Request, res: Response): Promise<void> {
     try {
       const id = Number(req.params.id);
-    const empreiteira = await Empreiteira.findById(this.empreiteiraRepository, id);
+      if (isNaN(id)) {
+        res.status(400).json({ success: false, message: 'ID inválido.' });
+        return;
+      }
+
+      const empreiteira = await Empreiteira.findById(this.empreiteiraRepository, id);
 
       if (!empreiteira) {
         res.status(404).json({ success: false, message: `Empreiteira com ID ${id} não encontrada.` });
@@ -93,9 +89,12 @@ export class EmpreiteiraController {
   public async update(req: Request, res: Response): Promise<void> {
     try {
       const id = Number(req.params.id);
-      const empreiteiraData = req.body;
+      if (isNaN(id)) {
+        res.status(400).json({ success: false, message: 'ID inválido.' });
+        return;
+      }
 
-      // 1. Verificar se a empreiteira existe
+      const empreiteiraData = req.body;
       const empreiteira = await this.empreiteiraRepository.findById(id);
 
       if (!empreiteira) {
@@ -103,7 +102,6 @@ export class EmpreiteiraController {
         return;
       }
 
-      // 2. Atualizar o objeto e salvar. O método `merge` do TypeORM ajuda nisso.
       this.empreiteiraRepository.merge(empreiteira, empreiteiraData);
       const empreiteiraAtualizada = await this.empreiteiraRepository.save(empreiteira);
 
@@ -111,7 +109,6 @@ export class EmpreiteiraController {
       
     } catch (error: any) {
       console.error('Erro ao atualizar empreiteira:', error);
-      // Lidar com erro de duplicidade
        if (error.code === '23505') { 
         res.status(400).json({ success: false, message: 'CNPJ/CPF ou Email já cadastrado em outra empreiteira.' });
         return;
@@ -126,9 +123,12 @@ export class EmpreiteiraController {
    */
   public async delete(req: Request, res: Response): Promise<void> {
     try {
-      const id = req.params.id;
+      const id = Number(req.params.id);
+      if (isNaN(id)) {
+        res.status(400).json({ success: false, message: 'ID inválido.' });
+        return;
+      }
 
-      // O TypeORM retorna um objeto com 'affected: 1' se a linha for deletada
       const deleteResult = await this.empreiteiraRepository.delete(id);
 
       if (deleteResult.affected === 0) {
@@ -136,16 +136,18 @@ export class EmpreiteiraController {
         return;
       }
 
-      // 204 No Content: Sucesso, mas não há corpo de resposta
       res.status(204).send();
       
     } catch (error: any) {
       console.error('Erro ao excluir empreiteira:', error);
-      // Lidar com erro de restrição de chave estrangeira (se a empreiteira estiver ligada a uma Obra)
-      if (error.code === '23503') {
+      
+      const errorCode = error.code || (error.driverError && error.driverError.code);
+
+      if (errorCode === '23503' || errorCode === '23001') {
         res.status(400).json({ success: false, message: 'Não é possível excluir: A empreiteira está associada a uma ou mais obras.' });
         return;
       }
+      
       res.status(500).json({ success: false, message: 'Erro interno ao processar a exclusão.' });
     }
   }

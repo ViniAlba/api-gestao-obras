@@ -10,73 +10,59 @@ import {
 } from 'typeorm';
 import { Repository, FindManyOptions } from 'typeorm';
 
-// Transformador para formatar a data ao ler do banco
 const dateTransformer = {
-  to: (value: Date | null) => value, // Na hora de salvar, manda a data normal
-  from: (value: Date | string | null) => { // Na hora de ler, formata
+  to: (value: Date | null) => value,
+  from: (value: Date | string | null) => {
     if (!value) return null;
     const date = new Date(value);
-    // Formata para pt-BR no fuso de SP
     return date.toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
   },
 };
 
 /**
  * @description Entidade Trabalhador (Mapeia para a tabela 'trabalhadores').
- * Representa os funcionários da empreiteira, incluindo o auto-relacionamento com Gerente.
  */
 @Entity('trabalhadores')
 export class Trabalhador {
   /**
-   * @description Identificador único do trabalhador (Primary Key).
+   * @description Identificador único (Primary Key - Incremental).
    */
   @PrimaryGeneratedColumn('increment')
   idEmpregado!: number;
 
   /**
-   * @description ID do gerente responsável (Chave Estrangeira - FK).
+   * @description ID do gerente (FK Numérica - Auto-relacionamento).
    */
   @Column({ type: 'int', nullable: true })
-  idGerente!: number | null; // Não obrigatório
+  idGerente!: number | null;
 
-  /**
-   * @description Relação de Muitos-para-Um (ManyToOne) com o Gerente (que é outro Trabalhador).
-   * Define o lado do "empregado".
-   */
   @ManyToOne(() => Trabalhador, (trabalhador) => trabalhador.subordinados, { 
-    nullable: true, // Um trabalhador pode não ter gerente (é o Gerente principal)
-    onDelete: 'SET NULL' // Se o Gerente for excluído, o idGerente do subordinado fica NULL
+    nullable: true,
+    onDelete: 'SET NULL'
   })
-  @JoinColumn({ name: 'idGerente' }) // Indica qual coluna armazena o FK
+  @JoinColumn({ name: 'idGerente' })
   gerente!: Trabalhador | null;
   
-  /**
-   * @description Relação de Um-para-Muitos (OneToMany) com os Subordinados.
-   * Define o lado do "gerente". Carregado apenas quando solicitado.
-   */
-  @OneToMany(() => Trabalhador, (trabalhador) => trabalhador.gerente, { cascade: ['insert'] })
+  @OneToMany(() => Trabalhador, (trabalhador) => trabalhador.gerente)
   subordinados!: Trabalhador[];
 
-
-  // --- Outras Colunas ---
-
   @Column({ type: 'varchar', length: 255 })
-  nome!: string; // Obrigatório
+  nome!: string;
 
   @Column({ type: 'varchar', length: 30, unique: true })
-  cpfCnpj!: string; // Obrigatório e Único
+  cpfCnpj!: string;
 
   @Column({ type: 'varchar', length: 30 })
-  rgie!: string; // Obrigatório
+  rgie!: string;
 
   @Column('decimal', { precision: 10, scale: 2 })
-  salario!: number; // Obrigatório
+  salario!: number;
 
   @Column({ type: 'varchar', length: 50, unique: true })
-  ctps!: string; // Obrigatório e Único
+  ctps!: string;
 
   @Column({ type: 'varchar', length: 100 })
-  funcao!: string; // Obrigatório
+  funcao!: string;
 
   @CreateDateColumn({ type: 'timestamp with time zone', transformer: dateTransformer})
   criadoEm!: Date;
@@ -89,21 +75,5 @@ export class Trabalhador {
    */
   static async findById(repository: Repository<Trabalhador>, id: number): Promise<Trabalhador | null> {
     return repository.findOne({ where: { idEmpregado: id } });
-  }
-
-  /**
-   * Busca trabalhadores com filtro por gerente e paginação.
-   */
-  static async findAndCountWithFilters(
-    repository: Repository<Trabalhador>,
-    options: FindManyOptions<Trabalhador>,
-    idGerente?: number
-  ): Promise<[Trabalhador[], number]> {
-    const where: any = options.where || {};
-    if (idGerente) {
-      where.idGerente = idGerente;
-    }
-    options.where = where;
-    return repository.findAndCount(options);
   }
 }

@@ -8,10 +8,8 @@ import obraRouter from '../routes/obra.route';
 
 export const router = Router();
 
-// 1. Rota de Autenticação
 router.use('/auth', authRouter);
 
-// 2. Rotas de Recursos
 router.use('/empreiteiras', empreiteiraRouter);
 router.use('/engenheiros', engenheiroRouter);
 router.use('/trabalhadores', trabalhadorRouter);

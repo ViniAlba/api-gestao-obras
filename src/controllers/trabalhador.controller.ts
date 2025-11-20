@@ -1,6 +1,5 @@
 import { Request, Response } from 'express';
 import { TrabalhadorRepository } from '../repositories/trabalhador.repository';
-import { AppDataSource } from '../datasource';
 import { Trabalhador } from '../models/trabalhador.model';
 
 /**
@@ -10,8 +9,8 @@ import { Trabalhador } from '../models/trabalhador.model';
 export class TrabalhadorController {
   private trabalhadorRepository: TrabalhadorRepository;
 
-  constructor() {
-  this.trabalhadorRepository = new TrabalhadorRepository();
+  constructor(repository?: TrabalhadorRepository) {
+    this.trabalhadorRepository = repository || new TrabalhadorRepository();
   }
 
   /**
@@ -22,21 +21,31 @@ export class TrabalhadorController {
     try {
       const trabalhadorData = req.body;
       
-      // Validação básica de campos obrigatórios
       if (!trabalhadorData.nome || !trabalhadorData.cpfCnpj || !trabalhadorData.salario || !trabalhadorData.ctps || !trabalhadorData.funcao) {
         res.status(400).json({ success: false, message: 'Dados incompletos. Nome, CPF/CNPJ, Salário, CTPS e Função são obrigatórios.' });
         return;
+      }
+      
+      // Se idGerente vier vazio ou undefined, forçamos null
+      if (!trabalhadorData.idGerente) {
+        trabalhadorData.idGerente = null;
+      }
+
+      if (trabalhadorData.idGerente) {
+         const gerenteExiste = await this.trabalhadorRepository.findById(trabalhadorData.idGerente);
+         if (!gerenteExiste) {
+             res.status(400).json({ success: false, message: 'O Gerente informado não existe.' });
+             return;
+         }
       }
 
       const novoTrabalhador = this.trabalhadorRepository.create(trabalhadorData as Trabalhador);
       await this.trabalhadorRepository.save(novoTrabalhador);
 
-      // Retorna 201 Created
       res.status(201).json({ success: true, data: novoTrabalhador });
       
     } catch (error: any) {
       console.error('Erro ao criar trabalhador:', error);
-      // Lidar com erro de duplicidade (CPF/CNPJ, CTPS)
       if (error.code === '23505') { 
         res.status(400).json({ success: false, message: 'CPF/CNPJ ou CTPS já cadastrado.' });
         return;
@@ -51,15 +60,13 @@ export class TrabalhadorController {
    */
   public async findAll(req: Request, res: Response): Promise<void> {
     try {
-      // Parâmetros de Query (Query Params)
       const pagina = parseInt(req.query.pagina as string) || 1;
       const limite = Math.min(parseInt(req.query.limite as string) || 10, 100);
       const idGerente = Number(req.query.idGerente) || undefined;
 
       const [trabalhadores, total] = await this.trabalhadorRepository.findAndCountWithFilters({
         take: limite,
-        //skip: skip,
-        // Carregar a relação 'gerente' para mostrar quem é o gerente de cada um
+        skip: (pagina - 1) * limite,
         relations: ['gerente']
       }, idGerente);
 
@@ -67,7 +74,6 @@ export class TrabalhadorController {
         success: true, 
         data: trabalhadores.map(t => ({
           ...t,
-          // Mapeia o objeto gerente para mostrar apenas o ID (ou null)
           idGerente: t.gerente ? t.gerente.idEmpregado : null 
         })),
         meta: {
@@ -90,7 +96,11 @@ export class TrabalhadorController {
   public async findOne(req: Request, res: Response): Promise<void> {
     try {
       const id = Number(req.params.id);
-      // Busca o trabalhador e carrega o gerente
+      if (isNaN(id)) {
+        res.status(400).json({ success: false, message: 'ID inválido.' });
+        return;
+      }
+
       const trabalhador = await Trabalhador.findById(this.trabalhadorRepository, id);
 
       if (!trabalhador) {
@@ -98,7 +108,6 @@ export class TrabalhadorController {
         return;
       }
 
-      // Retorna os dados, incluindo o idGerente para o padrão da API
       res.status(200).json({ 
         success: true, 
         data: {
@@ -120,9 +129,13 @@ export class TrabalhadorController {
   public async update(req: Request, res: Response): Promise<void> {
     try {
       const id = Number(req.params.id);
-      const trabalhadorData = req.body;
+      if (isNaN(id)) {
+        res.status(400).json({ success: false, message: 'ID inválido.' });
+        return;
+      }
 
-  const trabalhador = await Trabalhador.findById(this.trabalhadorRepository, id);
+      const trabalhadorData = req.body;
+      const trabalhador = await Trabalhador.findById(this.trabalhadorRepository, id);
 
       if (!trabalhador) {
         res.status(404).json({ success: false, message: `Trabalhador com ID ${id} não encontrado para atualização.` });
@@ -136,7 +149,6 @@ export class TrabalhadorController {
       
     } catch (error: any) {
       console.error('Erro ao atualizar trabalhador:', error);
-      // Lidar com erro de duplicidade (CPF/CNPJ, CTPS)
       if (error.code === '23505') { 
         res.status(400).json({ success: false, message: 'CPF/CNPJ ou CTPS já cadastrado em outro trabalhador.' });
         return;
@@ -151,22 +163,31 @@ export class TrabalhadorController {
    */
   public async delete(req: Request, res: Response): Promise<void> {
     try {
-      const id = req.params.id;
+      const id = Number(req.params.id);
+      if (isNaN(id)) {
+        res.status(400).json({ success: false, message: 'ID inválido.' });
+        return;
+      }
 
-  const deleteResult = await this.trabalhadorRepository.delete(id);
+      const deleteResult = await this.trabalhadorRepository.delete(id);
 
       if (deleteResult.affected === 0) {
         res.status(404).json({ success: false, message: `Trabalhador com ID ${id} não encontrado para exclusão.` });
         return;
       }
 
-      // 204 No Content
       res.status(204).send();
       
     } catch (error: any) {
       console.error('Erro ao excluir trabalhador:', error);
-      // Se for gerente de outros, o 'onDelete: SET NULL' deve evitar o erro 23503, 
-      // mas é bom ter um tratamento genérico para o 500.
+      
+      const errorCode = error.code || (error.driverError && error.driverError.code);
+
+      if (errorCode === '23503' || errorCode === '23001') {
+        res.status(400).json({ success: false, message: 'Não é possível excluir: O trabalhador está associado a uma ou mais obras.' });
+        return;
+      }
+      
       res.status(500).json({ success: false, message: 'Erro interno ao processar a exclusão.' });
     }
   }

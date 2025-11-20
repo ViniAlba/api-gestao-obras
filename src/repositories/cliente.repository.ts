@@ -10,11 +10,6 @@ export class ClienteRepository extends Repository<Cliente> {
     super(Cliente, AppDataSource.manager);
   }
 
-  /**
-   * @description Encontra um cliente pelo ID (idCliente).
-   * @param id O ID único do cliente.
-   * @returns Uma promessa que resolve para a Cliente ou null.
-   */
   public async findById(id: number): Promise<Cliente | null> {
     return this.findOne({ where: { idCliente: id } });
   }

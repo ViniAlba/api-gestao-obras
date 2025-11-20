@@ -1,21 +1,20 @@
 import { Request, Response } from 'express';
 import { UserRepository } from '../repositories/user.repository';
-import { AppDataSource } from '../datasource';
 import jwt from 'jsonwebtoken';
 import { User } from '../models/user.model';
 
-// Garantir que a chave secreta JWT está carregada
-const JWT_SECRET = process.env.JWT_SECRET || 'uma-chave-padrao-se-nao-estiver-no-env'; 
+const JWT_SECRET = process.env.JWT_SECRET || 'secret';
 
 /**
  * @description Controller responsável por lidar com o Login e geração de JWT.
  */
 export class AuthController {
-  private userRepository;
+  private userRepository: UserRepository;
 
-  constructor() {
-    this.userRepository = AppDataSource.getRepository(User);
+  constructor(repository?: UserRepository) {
+    this.userRepository = repository || new UserRepository();
   }
+
   /**
    * @description Endpoint de login. Valida credenciais e emite um JWT.
    * Rota: POST /auth/login
@@ -29,16 +28,13 @@ export class AuthController {
         return;
       }
 
-      // 1. Buscar o usuário (incluindo a senha hash)
       const user = await User.findByEmailWithPassword(this.userRepository, email);
 
       if (!user) {
-        // Mensagem genérica por segurança (para não revelar se o email existe)
         res.status(401).json({ success: false, message: 'Credenciais inválidas.' });
         return;
       }
 
-      // 2. Comparar a senha fornecida com o hash salvo
       const isPasswordValid = await user.comparePassword(password);
 
       if (!isPasswordValid) {
@@ -46,17 +42,14 @@ export class AuthController {
         return;
       }
 
-      // 3. Geração do Payload JWT (o que será guardado no token)
       const payload = {
         userId: user.id,
         email: user.email,
         role: user.role,
       };
 
-      // 4. Criação do Token (expira em 1 dia, por exemplo)
       const token = jwt.sign(payload, JWT_SECRET, { expiresIn: '1d' });
 
-      // 5. Resposta de sucesso
       res.status(200).json({
         success: true,
         message: 'Login realizado com sucesso.',
@@ -91,7 +84,6 @@ export class AuthController {
         const newUser = this.userRepository.create(userData as User);
         await this.userRepository.save(newUser);
 
-        // Retorna 201 Created
         res.status(201).json({ 
             success: true, 
             message: 'Usuário registrado com sucesso.', 
@@ -100,7 +92,7 @@ export class AuthController {
 
     } catch (error: any) {
         console.error('Erro no registro:', error);
-        if (error.code === '23505') { // Erro de duplicidade
+        if (error.code === '23505') {
             res.status(400).json({ success: false, message: 'Este email já está em uso.' });
             return;
         }

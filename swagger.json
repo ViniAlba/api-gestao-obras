@@ -28,7 +28,7 @@
       "AuthRequest": {
         "type": "object",
         "properties": {
-          "email": { "type": "string", "example": "user@example.com" },
+          "email": { "type": "string", "example": "fulano@exemplo.com" },
           "password": { "type": "string", "example": "senha123" }
         },
         "required": ["email", "password"]
@@ -36,8 +36,8 @@
       "RegisterRequest": {
         "type": "object",
         "properties": {
-          "name": { "type": "string", "example": "John Doe" },
-          "email": { "type": "string", "example": "user@example.com" },
+          "name": { "type": "string", "example": "Fulano de Tal" },
+          "email": { "type": "string", "example": "fulano@exemplo.com" },
           "password": { "type": "string", "example": "senha123" }
         },
         "required": ["name", "email", "password"]
@@ -45,16 +45,16 @@
       "TokenResponse": {
         "type": "object",
         "properties": {
-          "success": { "type": "boolean" },
-          "message": { "type": "string" },
-          "token": { "type": "string" },
+          "success": { "type": "boolean", "example": true },
+          "message": { "type": "string", "example": "Login realizado com sucesso." },
+          "token": { "type": "string", "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." },
           "userData": {
             "type": "object",
             "properties": {
-              "id": { "type": "integer" },
-              "name": { "type": "string" },
-              "email": { "type": "string" },
-              "role": { "type": "string" }
+              "id": { "type": "integer", "example": 1 },
+              "name": { "type": "string", "example": "Fulano de Tal" },
+              "email": { "type": "string", "example": "fulano@exemplo.com" },
+              "role": { "type": "string", "example": "viewer" }
             }
           }
         }
@@ -64,13 +64,34 @@
         "properties": {
           "idCliente": { 
             "type": "integer", 
-            "readOnly": true 
+            "readOnly": true,
+            "example": 1
           },
-          "nome": { "type": "string" },
-          "endereco": { "type": "string" },
-          "telefone": { "type": "string" },
-          "cpfCnpj": { "type": "string" },
-          "rgIe": { "type": "string" }
+          "nome": { "type": "string", "example": "Comércio de Materiais Silva" },
+          "endereco": { "type": "string", "example": "Av. Paulista, 1000, São Paulo - SP" },
+          "telefone": { "type": "string", "example": "(11) 98888-7777" },
+          "cpfCnpj": { "type": "string", "example": "12.345.678/0001-90" },
+          "rgIe": { "type": "string", "example": "123.456.789.111" }
+        }
+      },
+      "Empreiteira": {
+        "type": "object",
+        "properties": {
+          "idEmp": { 
+            "type": "integer", 
+            "readOnly": true,
+            "example": 1
+          },
+          "cnpjCpf": { "type": "string", "example": "98.765.432/0001-00" },
+          "nome": { "type": "string", "example": "Construtora Horizonte Ltda" },
+          "telefone": { "type": "string", "example": "(11) 3333-4444" },
+          "email": { "type": "string", "example": "contato@horizonte.com.br" },
+          "fundacao": { "type": "string", "format": "date", "example": "2010-05-15" },
+          "licencas": { 
+            "type": "array", 
+            "items": { "type": "string" },
+            "example": ["Alvará Municipal 2025", "Licença Ambiental"]
+          }
         }
       },
       "Engenheiro": {
@@ -78,15 +99,17 @@
         "properties": {
           "idEngenheiro": { 
             "type": "integer", 
-            "readOnly": true 
+            "readOnly": true,
+            "example": 1
           },
-          "nome": { "type": "string" },
-          "telefone": { "type": "string" },
-          "endereco": { "type": "string" },
-          "crea": { "type": "string" },
+          "nome": { "type": "string", "example": "Eng. Carlos Alberto" },
+          "telefone": { "type": "string", "example": "(11) 99999-1234" },
+          "endereco": { "type": "string", "example": "Rua das Projetos, 50, São Paulo - SP" },
+          "crea": { "type": "string", "example": "123456/SP" },
           "certificacoesAdicionais": { 
             "type": "array",
-            "items": { "type": "string" }
+            "items": { "type": "string" },
+            "example": ["PMP", "Segurança do Trabalho"]
           }
         }
       },
@@ -95,17 +118,24 @@
         "properties": {
           "idObra": { 
             "type": "integer", 
-            "readOnly": true 
+            "readOnly": true,
+            "example": 1
           },
-          "idCliente": { "type": "integer" },
-          "idEngenheiro": { "type": "integer" },
-          "tipoobra": { "type": "string" },
-          "enderecoobra": { "type": "string" },
-          "dataInicio": { "type": "string", "format": "date" },
-          "prevTermino": { "type": "string", "format": "date" },
-          "valorTotal": { "type": "number" },
-          "formaPagamento": { "type": "string" },
-          "status": { "type": "string" }
+          "idCliente": { "type": "integer", "example": 1 },
+          "idEngenheiro": { "type": "integer", "example": 1 },
+          "tipoobra": { "type": "string", "example": "Residencial Multifamiliar" },
+          "enderecoobra": { "type": "string", "example": "Rua da Obra Nova, 100, Campinas - SP" },
+          "dataInicio": { "type": "string", "format": "date", "example": "2025-02-01" },
+          "prevTermino": { "type": "string", "format": "date", "example": "2026-02-01" },
+          "valorTotal": { "type": "number", "example": 500000.00 },
+          "formaPagamento": { "type": "string", "example": "Entrada + 10 parcelas" },
+          "status": { "type": "string", "example": "execução" },
+          "alvarasLicencas": { 
+            "type": "array", 
+            "items": { "type": "string" },
+            "example": ["Alvará de Construção 2025"]
+          },
+          "contrato": { "type": "string", "example": "CTR-2025/001" }
         }
       },
       "Trabalhador": {
@@ -113,15 +143,21 @@
         "properties": {
           "idEmpregado": { 
             "type": "integer", 
-            "readOnly": true 
+            "readOnly": true,
+            "example": 1
           },
-          "idGerente": { "type": "integer", "nullable": true },
-          "nome": { "type": "string" },
-          "cpfCnpj": { "type": "string" },
-          "rgie": { "type": "string" },
-          "salario": { "type": "number" },
-          "ctps": { "type": "string" },
-          "funcao": { "type": "string" }
+          "idGerente": { 
+            "type": "integer", 
+            "nullable": true,
+            "description": "ID do superior imediato. Se mantido como 'null' (ou omitido), o trabalhador será considerado um Gerente/Diretor (sem superior).",
+            "example": null
+          },
+          "nome": { "type": "string", "example": "José da Silva" },
+          "cpfCnpj": { "type": "string", "example": "111.222.333-44" },
+          "rgie": { "type": "string", "example": "12.345.678-9" },
+          "salario": { "type": "number", "example": 3500.00 },
+          "ctps": { "type": "string", "example": "123456/0010" },
+          "funcao": { "type": "string", "example": "Mestre de Obras" }
         }
       }
     }
@@ -304,68 +340,85 @@
           },
           "404": {
             "description": "Cliente não encontrado"
+          },
+          "400": {
+            "description": "Não é possível excluir: Cliente possui obras vinculadas"
           }
         }
       }
     },
-    "/obras": {
+    "/empreiteiras": {
       "get": {
-        "tags": ["Obras"],
-        "summary": "Lista todas as obras",
-        "parameters": [
-          {
-            "in": "query",
-            "name": "status",
-            "schema": { "type": "string" }
-          },
-          {
-            "in": "query",
-            "name": "idCliente",
-            "schema": { "type": "integer" }
-          }
-        ],
+        "tags": ["Empreiteiras"],
+        "summary": "Lista todas as empreiteiras",
         "responses": {
           "200": {
-            "description": "Lista de obras"
+            "description": "Lista de empreiteiras",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array", "items": { "$ref": "#/components/schemas/Empreiteira" }
+                }
+              }
+            }
           }
         }
       },
       "post": {
-        "tags": ["Obras"],
-        "summary": "Cria uma nova obra",
+        "tags": ["Empreiteiras"],
+        "summary": "Cria uma nova empreiteira",
         "requestBody": {
           "content": {
             "application/json": {
-              "schema": { "$ref": "#/components/schemas/Obra" }
+              "schema": { "$ref": "#/components/schemas/Empreiteira" }
             }
           }
         },
         "responses": {
-          "201": {
-            "description": "Obra criada com sucesso"
-          }
+          "201": { "description": "Empreiteira criada com sucesso" }
         }
       }
     },
-    "/obras/{id}": {
+    "/empreiteiras/{id}": {
       "get": {
-        "tags": ["Obras"],
-        "summary": "Busca uma obra pelo ID",
+        "tags": ["Empreiteiras"],
+        "summary": "Busca uma empreiteira pelo ID",
         "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": { "type": "integer" }
-          }
+          { "in": "path", "name": "id", "required": true, "schema": { "type": "integer" } }
         ],
         "responses": {
-          "200": {
-            "description": "Obra encontrada"
-          },
-          "404": {
-            "description": "Obra não encontrada"
+          "200": { "description": "Empreiteira encontrada" },
+          "404": { "description": "Empreiteira não encontrada" }
+        }
+      },
+      "put": {
+        "tags": ["Empreiteiras"],
+        "summary": "Atualiza uma empreiteira",
+        "parameters": [
+          { "in": "path", "name": "id", "required": true, "schema": { "type": "integer" } }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/Empreiteira" }
+            }
           }
+        },
+        "responses": {
+          "200": { "description": "Empreiteira atualizada com sucesso" },
+          "404": { "description": "Empreiteira não encontrada" }
+        }
+      },
+      "delete": {
+        "tags": ["Empreiteiras"],
+        "summary": "Remove uma empreiteira",
+        "parameters": [
+          { "in": "path", "name": "id", "required": true, "schema": { "type": "integer" } }
+        ],
+        "responses": {
+          "204": { "description": "Empreiteira removida com sucesso" },
+          "404": { "description": "Empreiteira não encontrada" },
+          "400": { "description": "Não é possível excluir: Empreiteira possui vínculos" }
         }
       }
     },
@@ -398,9 +451,7 @@
           }
         },
         "responses": {
-          "201": {
-            "description": "Engenheiro cadastrado com sucesso"
-          }
+          "201": { "description": "Engenheiro cadastrado com sucesso" }
         }
       }
     },
@@ -409,20 +460,111 @@
         "tags": ["Engenheiros"],
         "summary": "Busca um engenheiro pelo ID",
         "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": { "type": "integer" }
-          }
+          { "in": "path", "name": "id", "required": true, "schema": { "type": "integer" } }
         ],
         "responses": {
-          "200": {
-            "description": "Engenheiro encontrado"
-          },
-          "404": {
-            "description": "Engenheiro não encontrado"
+          "200": { "description": "Engenheiro encontrado" },
+          "404": { "description": "Engenheiro não encontrado" }
+        }
+      },
+      "put": {
+        "tags": ["Engenheiros"],
+        "summary": "Atualiza um engenheiro",
+        "parameters": [
+          { "in": "path", "name": "id", "required": true, "schema": { "type": "integer" } }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/Engenheiro" }
+            }
           }
+        },
+        "responses": {
+          "200": { "description": "Engenheiro atualizado com sucesso" },
+          "404": { "description": "Engenheiro não encontrado" }
+        }
+      },
+      "delete": {
+        "tags": ["Engenheiros"],
+        "summary": "Remove um engenheiro",
+        "parameters": [
+          { "in": "path", "name": "id", "required": true, "schema": { "type": "integer" } }
+        ],
+        "responses": {
+          "204": { "description": "Engenheiro removido com sucesso" },
+          "404": { "description": "Engenheiro não encontrado" },
+          "400": { "description": "Não é possível excluir: Engenheiro está vinculado a obras" }
+        }
+      }
+    },
+    "/obras": {
+      "get": {
+        "tags": ["Obras"],
+        "summary": "Lista todas as obras",
+        "parameters": [
+          { "in": "query", "name": "status", "schema": { "type": "string" } },
+          { "in": "query", "name": "idCliente", "schema": { "type": "integer" } }
+        ],
+        "responses": {
+          "200": { "description": "Lista de obras" }
+        }
+      },
+      "post": {
+        "tags": ["Obras"],
+        "summary": "Cria uma nova obra",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/Obra" }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Obra criada com sucesso" }
+        }
+      }
+    },
+    "/obras/{id}": {
+      "get": {
+        "tags": ["Obras"],
+        "summary": "Busca uma obra pelo ID",
+        "parameters": [
+          { "in": "path", "name": "id", "required": true, "schema": { "type": "integer" } }
+        ],
+        "responses": {
+          "200": { "description": "Obra encontrada" },
+          "404": { "description": "Obra não encontrada" }
+        }
+      },
+      "put": {
+        "tags": ["Obras"],
+        "summary": "Atualiza uma obra",
+        "parameters": [
+          { "in": "path", "name": "id", "required": true, "schema": { "type": "integer" } }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/Obra" }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Obra atualizada com sucesso" },
+          "404": { "description": "Obra não encontrada" },
+          "400": { "description": "Dados inválidos (ex: Cliente/Engenheiro não existe)" }
+        }
+      },
+      "delete": {
+        "tags": ["Obras"],
+        "summary": "Remove uma obra",
+        "parameters": [
+          { "in": "path", "name": "id", "required": true, "schema": { "type": "integer" } }
+        ],
+        "responses": {
+          "204": { "description": "Obra removida com sucesso" },
+          "404": { "description": "Obra não encontrada" }
         }
       }
     },
@@ -436,8 +578,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": { "$ref": "#/components/schemas/Trabalhador" }
+                  "type": "array", "items": { "$ref": "#/components/schemas/Trabalhador" }
                 }
               }
             }
@@ -455,9 +596,7 @@
           }
         },
         "responses": {
-          "201": {
-            "description": "Trabalhador cadastrado com sucesso"
-          }
+          "201": { "description": "Trabalhador cadastrado com sucesso" }
         }
       }
     },
@@ -466,20 +605,41 @@
         "tags": ["Trabalhadores"],
         "summary": "Busca um trabalhador pelo ID",
         "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": { "type": "integer" }
-          }
+          { "in": "path", "name": "id", "required": true, "schema": { "type": "integer" } }
         ],
         "responses": {
-          "200": {
-            "description": "Trabalhador encontrado"
-          },
-          "404": {
-            "description": "Trabalhador não encontrado"
+          "200": { "description": "Trabalhador encontrado" },
+          "404": { "description": "Trabalhador não encontrado" }
+        }
+      },
+      "put": {
+        "tags": ["Trabalhadores"],
+        "summary": "Atualiza um trabalhador",
+        "parameters": [
+          { "in": "path", "name": "id", "required": true, "schema": { "type": "integer" } }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/Trabalhador" }
+            }
           }
+        },
+        "responses": {
+          "200": { "description": "Trabalhador atualizado com sucesso" },
+          "404": { "description": "Trabalhador não encontrado" }
+        }
+      },
+      "delete": {
+        "tags": ["Trabalhadores"],
+        "summary": "Remove um trabalhador",
+        "parameters": [
+          { "in": "path", "name": "id", "required": true, "schema": { "type": "integer" } }
+        ],
+        "responses": {
+          "204": { "description": "Trabalhador removido com sucesso" },
+          "404": { "description": "Trabalhador não encontrado" },
+          "400": { "description": "Não é possível excluir: Trabalhador é gerente de outros" }
         }
       }
     }

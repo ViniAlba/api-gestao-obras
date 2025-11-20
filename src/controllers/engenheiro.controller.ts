@@ -1,6 +1,5 @@
 import { Request, Response } from 'express';
 import { EngenheiroRepository } from '../repositories/engenheiro.repository';
-import { AppDataSource } from '../datasource';
 import { Engenheiro } from '../models/engenheiro.model';
 
 /**
@@ -10,8 +9,8 @@ import { Engenheiro } from '../models/engenheiro.model';
 export class EngenheiroController {
   private engenheiroRepository: EngenheiroRepository;
 
-  constructor() {
-  this.engenheiroRepository = new EngenheiroRepository;
+  constructor(repository?: EngenheiroRepository) {
+    this.engenheiroRepository = repository || new EngenheiroRepository();
   }
 
   /**
@@ -22,7 +21,6 @@ export class EngenheiroController {
     try {
       const engenheiroData = req.body;
       
-      // Validação básica de campos obrigatórios [cite: 239]
       if (!engenheiroData.nome || !engenheiroData.telefone || !engenheiroData.endereco || !engenheiroData.crea) {
         res.status(400).json({ success: false, message: 'Dados incompletos. Nome, telefone, endereço e CREA são obrigatórios.' });
         return;
@@ -31,12 +29,10 @@ export class EngenheiroController {
       const novoEngenheiro = this.engenheiroRepository.create(engenheiroData as Engenheiro);
       await this.engenheiroRepository.save(novoEngenheiro);
 
-      // Retorna 201 Created [cite: 251]
       res.status(201).json({ success: true, data: novoEngenheiro });
       
     } catch (error: any) {
       console.error('Erro ao criar engenheiro:', error);
-      // Lidar com erro de duplicidade (CREA)
       if (error.code === '23505') { 
         res.status(400).json({ success: false, message: 'Número CREA já cadastrado.' });
         return;
@@ -47,13 +43,12 @@ export class EngenheiroController {
 
   /**
    * @description Lista todos os Engenheiros (com paginação).
-   * Rota: GET /engenheiros [cite: 34]
+   * Rota: GET /engenheiros
    */
   public async findAll(req: Request, res: Response): Promise<void> {
     try {
-      // Implementando a paginação conforme a documentação [cite: 185]
       const pagina = parseInt(req.query.pagina as string) || 1;
-      const limite = Math.min(parseInt(req.query.limite as string) || 10, 100); // Máx. 100 [cite: 185]
+      const limite = Math.min(parseInt(req.query.limite as string) || 10, 100);
       const skip = (pagina - 1) * limite;
 
       const [engenheiros, total] = await this.engenheiroRepository.findAndCount({
@@ -79,15 +74,19 @@ export class EngenheiroController {
 
   /**
    * @description Busca um Engenheiro pelo ID.
-   * Rota: GET /engenheiros/:id [cite: 34]
+   * Rota: GET /engenheiros/:id
    */
   public async findOne(req: Request, res: Response): Promise<void> {
     try {
-  const id = Number(req.params.id);
-  const engenheiro = await Engenheiro.findById(this.engenheiroRepository, id);
+      const id = Number(req.params.id);
+      if (isNaN(id)) {
+        res.status(400).json({ success: false, message: 'ID inválido.' });
+        return;
+      }
+
+      const engenheiro = await Engenheiro.findById(this.engenheiroRepository, id);
 
       if (!engenheiro) {
-        // Status 404 Not Found conforme a documentação [cite: 232]
         res.status(404).json({ success: false, message: 'Engenheiro não encontrado.' });
         return;
       }
@@ -102,14 +101,18 @@ export class EngenheiroController {
 
   /**
    * @description Atualiza um Engenheiro existente.
-   * Rota: PUT /engenheiros/:id [cite: 34]
+   * Rota: PUT /engenheiros/:id
    */
   public async update(req: Request, res: Response): Promise<void> {
     try {
       const id = Number(req.params.id);
-      const engenheiroData = req.body;
+      if (isNaN(id)) {
+        res.status(400).json({ success: false, message: 'ID inválido.' });
+        return;
+      }
 
-  const engenheiro = await Engenheiro.findById(this.engenheiroRepository, id);
+      const engenheiroData = req.body;
+      const engenheiro = await Engenheiro.findById(this.engenheiroRepository, id);
 
       if (!engenheiro) {
         res.status(404).json({ success: false, message: `Engenheiro com ID ${id} não encontrado para atualização.` });
@@ -123,7 +126,6 @@ export class EngenheiroController {
       
     } catch (error: any) {
       console.error('Erro ao atualizar engenheiro:', error);
-      // Lidar com erro de duplicidade (CREA)
       if (error.code === '23505') { 
         res.status(400).json({ success: false, message: 'Número CREA já cadastrado em outro engenheiro.' });
         return;
@@ -134,11 +136,15 @@ export class EngenheiroController {
 
   /**
    * @description Exclui um Engenheiro.
-   * Rota: DELETE /engenheiros/:id [cite: 34]
+   * Rota: DELETE /engenheiros/:id
    */
   public async delete(req: Request, res: Response): Promise<void> {
     try {
-      const id = req.params.id;
+      const id = Number(req.params.id);
+      if (isNaN(id)) {
+        res.status(400).json({ success: false, message: 'ID inválido.' });
+        return;
+      }
 
       const deleteResult = await this.engenheiroRepository.delete(id);
 
@@ -147,16 +153,18 @@ export class EngenheiroController {
         return;
       }
 
-      // 204 No Content: Sucesso, sem corpo de resposta [cite: 297]
       res.status(204).send();
       
     } catch (error: any) {
       console.error('Erro ao excluir engenheiro:', error);
-      // Se houver uma Obra ligada a este engenheiro, o DB impede a exclusão
-      if (error.code === '23503') { 
+      
+      const errorCode = error.code || (error.driverError && error.driverError.code);
+
+      if (errorCode === '23503' || errorCode === '23001') {
         res.status(400).json({ success: false, message: 'Não é possível excluir: O engenheiro está associado a uma ou mais obras.' });
         return;
       }
+      
       res.status(500).json({ success: false, message: 'Erro interno ao processar a exclusão.' });
     }
   }

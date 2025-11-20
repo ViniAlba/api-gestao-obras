@@ -1,6 +1,5 @@
 import { Request, Response } from 'express';
 import { ObraRepository } from '../repositories/obra.repository';
-import { AppDataSource } from '../datasource';
 import { Obra } from '../models/obra.model';
 import { ClienteRepository } from '../repositories/cliente.repository';
 import { EngenheiroRepository } from '../repositories/engenheiro.repository';
@@ -14,10 +13,14 @@ export class ObraController {
   private clienteRepository: ClienteRepository;
   private engenheiroRepository: EngenheiroRepository;
 
-  constructor() {
-    this.obraRepository = new ObraRepository();
-    this.clienteRepository = new ClienteRepository();
-    this.engenheiroRepository = new EngenheiroRepository();
+  constructor(
+    obraRepo?: ObraRepository, 
+    clienteRepo?: ClienteRepository, 
+    engenheiroRepo?: EngenheiroRepository
+  ) {
+    this.obraRepository = obraRepo || new ObraRepository();
+    this.clienteRepository = clienteRepo || new ClienteRepository();
+    this.engenheiroRepository = engenheiroRepo || new EngenheiroRepository();
   }
 
   /**
@@ -28,15 +31,13 @@ export class ObraController {
     try {
       const obraData = req.body;
       
-      // Validação básica de campos obrigatórios (incluindo FKs)
       if (!obraData.idCliente || !obraData.idEngenheiro || !obraData.tipoobra || !obraData.enderecoobra || !obraData.dataInicio || !obraData.prevTermino || !obraData.valorTotal || !obraData.status) {
         res.status(400).json({ success: false, message: 'Dados incompletos. idCliente, idEngenheiro e dados da obra são obrigatórios.' });
         return;
       }
       
-      // Validação das Chaves Estrangeiras (FKs)
-  const clienteExiste = await this.clienteRepository.findById(obraData.idCliente);
-  const engenheiroExiste = await this.engenheiroRepository.findById(obraData.idEngenheiro);
+      const clienteExiste = await this.clienteRepository.findById(obraData.idCliente);
+      const engenheiroExiste = await this.engenheiroRepository.findById(obraData.idEngenheiro);
 
       if (!clienteExiste) {
           res.status(400).json({ success: false, message: `Cliente com ID ${obraData.idCliente} não encontrado.` });
@@ -50,7 +51,6 @@ export class ObraController {
       const novaObra = this.obraRepository.create(obraData as Obra);
       await this.obraRepository.save(novaObra);
 
-      // Retorna 201 Created
       res.status(201).json({ success: true, data: novaObra });
       
     } catch (error: any) {
@@ -65,11 +65,10 @@ export class ObraController {
    */
   public async findAll(req: Request, res: Response): Promise<void> {
     try {
-      // Parâmetros de Query (Query Params)
       const pagina = parseInt(req.query.pagina as string) || 1;
       const limite = Math.min(parseInt(req.query.limite as string) || 10, 100);
-      const status = req.query.status as string | undefined; // Filtro de status 
-      const idCliente = Number(req.query.idCliente) || undefined; // Filtro de cliente 
+      const status = req.query.status as string | undefined;
+      const idCliente = Number(req.query.idCliente) || undefined;
       const skip = (pagina - 1) * limite;
 
       const [obras, total] = await this.obraRepository.findAndCountWithFilters({
@@ -99,8 +98,13 @@ export class ObraController {
    */
   public async findOne(req: Request, res: Response): Promise<void> {
     try {
-  const id = Number(req.params.id);
-  const obra = await Obra.findById(this.obraRepository, id);
+      const id = Number(req.params.id);
+      if (isNaN(id)) {
+        res.status(400).json({ success: false, message: 'ID inválido.' });
+        return;
+      }
+
+      const obra = await Obra.findById(this.obraRepository, id);
 
       if (!obra) {
         res.status(404).json({ success: false, message: 'Obra não encontrada.' });
@@ -122,8 +126,12 @@ export class ObraController {
   public async update(req: Request, res: Response): Promise<void> {
     try {
       const id = Number(req.params.id);
-      const obraData = req.body;
+      if (isNaN(id)) {
+        res.status(400).json({ success: false, message: 'ID inválido.' });
+        return;
+      }
 
+      const obraData = req.body;
       const obra = await this.obraRepository.findById(id);
 
       if (!obra) {
@@ -131,7 +139,6 @@ export class ObraController {
         return;
       }
 
-      // Validação das FKs (se idCliente ou idEngenheiro foram passados para atualização)
       if (obraData.idCliente && !(await this.clienteRepository.findById(obraData.idCliente))) {
           res.status(400).json({ success: false, message: `Cliente com ID ${obraData.idCliente} não encontrado.` });
           return;
@@ -158,7 +165,11 @@ export class ObraController {
    */
   public async delete(req: Request, res: Response): Promise<void> {
     try {
-      const id = req.params.id;
+      const id = Number(req.params.id);
+      if (isNaN(id)) {
+        res.status(400).json({ success: false, message: 'ID inválido.' });
+        return;
+      }
 
       const deleteResult = await this.obraRepository.delete(id);
 
@@ -167,7 +178,6 @@ export class ObraController {
         return;
       }
 
-      // 204 No Content
       res.status(204).send();
       
     } catch (error: any) {

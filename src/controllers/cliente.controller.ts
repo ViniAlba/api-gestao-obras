@@ -1,6 +1,5 @@
 import { Request, Response } from 'express';
 import { ClienteRepository } from '../repositories/cliente.repository';
-import { AppDataSource } from '../datasource';
 import { Cliente } from '../models/cliente.model';
 
 /**
@@ -10,19 +9,18 @@ import { Cliente } from '../models/cliente.model';
 export class ClienteController {
   private clienteRepository: ClienteRepository;
 
-  constructor() {
-  this.clienteRepository = new ClienteRepository();
+  constructor(repository?: ClienteRepository) {
+    this.clienteRepository = repository || new ClienteRepository();
   }
 
   /**
    * @description Cria um novo Cliente.
-   * Rota: POST /clientes [cite: 46, 485]
+   * Rota: POST /clientes
    */
   public async create(req: Request, res: Response): Promise<void> {
     try {
       const clienteData = req.body;
       
-      // Validação de campos obrigatórios [cite: 487]
       if (!clienteData.nome || !clienteData.endereco || !clienteData.telefone || !clienteData.cpfCnpj || !clienteData.rgIe) {
         res.status(400).json({ success: false, message: 'Dados incompletos. Todos os campos são obrigatórios.' });
         return;
@@ -31,12 +29,10 @@ export class ClienteController {
       const novoCliente = this.clienteRepository.create(clienteData as Cliente);
       await this.clienteRepository.save(novoCliente);
 
-      // Retorna 201 Created [cite: 500]
       res.status(201).json({ success: true, data: novoCliente });
       
     } catch (error: any) {
       console.error('Erro ao criar cliente:', error);
-      // Lidar com erro de duplicidade (cpfCnpj)
       if (error.code === '23505') { 
         res.status(400).json({ success: false, message: 'CPF/CNPJ já cadastrado.' });
         return;
@@ -51,7 +47,6 @@ export class ClienteController {
    */
   public async findAll(req: Request, res: Response): Promise<void> {
     try {
-      // Implementando a paginação conforme a documentação
       const pagina = parseInt(req.query.pagina as string) || 1;
       const limite = Math.min(parseInt(req.query.limite as string) || 10, 100);
       const skip = (pagina - 1) * limite;
@@ -79,16 +74,19 @@ export class ClienteController {
 
   /**
    * @description Busca um Cliente pelo ID.
-   * Rota: GET /clientes/:id [cite: 46, 461]
+   * Rota: GET /clientes/:id
    */
   public async findOne(req: Request, res: Response): Promise<void> {
     try {
-
       const id = Number(req.params.id);
+      if (isNaN(id)) {
+        res.status(400).json({ success: false, message: 'ID inválido.' });
+        return;
+      }
+
       const cliente = await Cliente.findById(this.clienteRepository, id);
 
       if (!cliente) {
-        // Status 404 Not Found conforme a documentação [cite: 480]
         res.status(404).json({ success: false, message: 'Cliente não encontrado.' });
         return;
       }
@@ -103,14 +101,18 @@ export class ClienteController {
 
   /**
    * @description Atualiza um Cliente existente.
-   * Rota: PUT /clientes/:id [cite: 46, 511]
+   * Rota: PUT /clientes/:id
    */
   public async update(req: Request, res: Response): Promise<void> {
     try {
       const id = Number(req.params.id);
+      if (isNaN(id)) {
+        res.status(400).json({ success: false, message: 'ID inválido.' });
+        return;
+      }
+      
       const clienteData = req.body;
-
-  const cliente = await Cliente.findById(this.clienteRepository, id);
+      const cliente = await Cliente.findById(this.clienteRepository, id);
 
       if (!cliente) {
         res.status(404).json({ success: false, message: `Cliente com ID ${id} não encontrado para atualização.` });
@@ -124,7 +126,6 @@ export class ClienteController {
       
     } catch (error: any) {
       console.error('Erro ao atualizar cliente:', error);
-      // Lidar com erro de duplicidade (cpfCnpj)
       if (error.code === '23505') { 
         res.status(400).json({ success: false, message: 'CPF/CNPJ já cadastrado em outro cliente.' });
         return;
@@ -135,11 +136,15 @@ export class ClienteController {
 
   /**
    * @description Exclui um Cliente.
-   * Rota: DELETE /clientes/:id [cite: 46, 536]
+   * Rota: DELETE /clientes/:id
    */
   public async delete(req: Request, res: Response): Promise<void> {
     try {
       const id = Number(req.params.id);
+      if (isNaN(id)) {
+        res.status(400).json({ success: false, message: 'ID inválido.' });
+        return;
+      }
 
       const deleteResult = await this.clienteRepository.delete(id);
 
@@ -148,16 +153,18 @@ export class ClienteController {
         return;
       }
 
-      // 204 No Content conforme a documentação [cite: 544]
       res.status(204).send();
       
     } catch (error: any) {
       console.error('Erro ao excluir cliente:', error);
-      // Lidar com erro de restrição de chave estrangeira (se o cliente estiver ligado a uma Obra)
-      if (error.code === '23503') {
+      
+      const errorCode = error.code || (error.driverError && error.driverError.code);
+
+      if (errorCode === '23503' || errorCode === '23001') {
         res.status(400).json({ success: false, message: 'Não é possível excluir: O cliente está associado a uma ou mais obras.' });
         return;
       }
+      
       res.status(500).json({ success: false, message: 'Erro interno ao processar a exclusão.' });
     }
   }
