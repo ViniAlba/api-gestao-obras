@@ -25,7 +25,7 @@ API RESTful para gerenciamento de obras, desenvolvida com Node.js, TypeScript, E
 
 ### 1. Clone o repositório
 ```bash
-git clone [https://github.com/seu-usuario/api-gestao-obras.git](https://github.com/seu-usuario/api-gestao-obras.git)
+git clone [https://github.com/ViniAlba/api-gestao-obras.git](https://github.com/ViniAlba/api-gestao-obras.git)
 cd api-gestao-obras
 ```
 
