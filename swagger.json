@@ -1,0 +1,487 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "API de Gestão de Obras",
+    "version": "1.0.0",
+    "description": "API RESTful para gerenciar empreiteiras, engenheiros, clientes, trabalhadores e obras, utilizando TypeORM e autenticação JWT."
+  },
+  "servers": [
+    {
+      "url": "/api/v1",
+      "description": "Servidor Principal"
+    }
+  ],
+  "security": [
+    {
+      "bearerAuth": []
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    },
+    "schemas": {
+      "AuthRequest": {
+        "type": "object",
+        "properties": {
+          "email": { "type": "string", "example": "user@example.com" },
+          "password": { "type": "string", "example": "senha123" }
+        },
+        "required": ["email", "password"]
+      },
+      "RegisterRequest": {
+        "type": "object",
+        "properties": {
+          "name": { "type": "string", "example": "John Doe" },
+          "email": { "type": "string", "example": "user@example.com" },
+          "password": { "type": "string", "example": "senha123" }
+        },
+        "required": ["name", "email", "password"]
+      },
+      "TokenResponse": {
+        "type": "object",
+        "properties": {
+          "success": { "type": "boolean" },
+          "message": { "type": "string" },
+          "token": { "type": "string" },
+          "userData": {
+            "type": "object",
+            "properties": {
+              "id": { "type": "integer" },
+              "name": { "type": "string" },
+              "email": { "type": "string" },
+              "role": { "type": "string" }
+            }
+          }
+        }
+      },
+      "Cliente": {
+        "type": "object",
+        "properties": {
+          "idCliente": { 
+            "type": "integer", 
+            "readOnly": true 
+          },
+          "nome": { "type": "string" },
+          "endereco": { "type": "string" },
+          "telefone": { "type": "string" },
+          "cpfCnpj": { "type": "string" },
+          "rgIe": { "type": "string" }
+        }
+      },
+      "Engenheiro": {
+        "type": "object",
+        "properties": {
+          "idEngenheiro": { 
+            "type": "integer", 
+            "readOnly": true 
+          },
+          "nome": { "type": "string" },
+          "telefone": { "type": "string" },
+          "endereco": { "type": "string" },
+          "crea": { "type": "string" },
+          "certificacoesAdicionais": { 
+            "type": "array",
+            "items": { "type": "string" }
+          }
+        }
+      },
+      "Obra": {
+        "type": "object",
+        "properties": {
+          "idObra": { 
+            "type": "integer", 
+            "readOnly": true 
+          },
+          "idCliente": { "type": "integer" },
+          "idEngenheiro": { "type": "integer" },
+          "tipoobra": { "type": "string" },
+          "enderecoobra": { "type": "string" },
+          "dataInicio": { "type": "string", "format": "date" },
+          "prevTermino": { "type": "string", "format": "date" },
+          "valorTotal": { "type": "number" },
+          "formaPagamento": { "type": "string" },
+          "status": { "type": "string" }
+        }
+      },
+      "Trabalhador": {
+        "type": "object",
+        "properties": {
+          "idEmpregado": { 
+            "type": "integer", 
+            "readOnly": true 
+          },
+          "idGerente": { "type": "integer", "nullable": true },
+          "nome": { "type": "string" },
+          "cpfCnpj": { "type": "string" },
+          "rgie": { "type": "string" },
+          "salario": { "type": "number" },
+          "ctps": { "type": "string" },
+          "funcao": { "type": "string" }
+        }
+      }
+    }
+  },
+  "paths": {
+    "/auth/login": {
+      "post": {
+        "tags": ["Autenticação"],
+        "summary": "Login do usuário e geração de JWT",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/AuthRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Login realizado com sucesso",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/TokenResponse" }
+              }
+            }
+          },
+          "401": {
+            "description": "Credenciais inválidas"
+          }
+        }
+      }
+    },
+    "/auth/register": {
+      "post": {
+        "tags": ["Autenticação"],
+        "summary": "Registra um novo usuário",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/RegisterRequest" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Usuário registrado com sucesso"
+          },
+          "400": {
+            "description": "Dados inválidos ou email já em uso"
+          }
+        }
+      }
+    },
+    "/clientes": {
+      "get": {
+        "tags": ["Clientes"],
+        "summary": "Lista todos os clientes",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "pagina",
+            "schema": { "type": "integer" }
+          },
+          {
+            "in": "query",
+            "name": "limite",
+            "schema": { "type": "integer" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lista de clientes",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean" },
+                    "data": {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/Cliente" }
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "total": { "type": "integer" },
+                        "paginaAtual": { "type": "integer" },
+                        "limite": { "type": "integer" },
+                        "totalPaginas": { "type": "integer" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["Clientes"],
+        "summary": "Cria um novo cliente",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/Cliente" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Cliente criado com sucesso"
+          },
+          "400": {
+            "description": "Dados inválidos"
+          }
+        }
+      }
+    },
+    "/clientes/{id}": {
+      "get": {
+        "tags": ["Clientes"],
+        "summary": "Busca um cliente pelo ID",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": { "type": "integer" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Cliente encontrado"
+          },
+          "404": {
+            "description": "Cliente não encontrado"
+          }
+        }
+      },
+      "put": {
+        "tags": ["Clientes"],
+        "summary": "Atualiza um cliente",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": { "type": "integer" }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/Cliente" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Cliente atualizado com sucesso"
+          },
+          "404": {
+            "description": "Cliente não encontrado"
+          }
+        }
+      },
+      "delete": {
+        "tags": ["Clientes"],
+        "summary": "Remove um cliente",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": { "type": "integer" }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Cliente removido com sucesso"
+          },
+          "404": {
+            "description": "Cliente não encontrado"
+          }
+        }
+      }
+    },
+    "/obras": {
+      "get": {
+        "tags": ["Obras"],
+        "summary": "Lista todas as obras",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "status",
+            "schema": { "type": "string" }
+          },
+          {
+            "in": "query",
+            "name": "idCliente",
+            "schema": { "type": "integer" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lista de obras"
+          }
+        }
+      },
+      "post": {
+        "tags": ["Obras"],
+        "summary": "Cria uma nova obra",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/Obra" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Obra criada com sucesso"
+          }
+        }
+      }
+    },
+    "/obras/{id}": {
+      "get": {
+        "tags": ["Obras"],
+        "summary": "Busca uma obra pelo ID",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": { "type": "integer" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Obra encontrada"
+          },
+          "404": {
+            "description": "Obra não encontrada"
+          }
+        }
+      }
+    },
+    "/engenheiros": {
+      "get": {
+        "tags": ["Engenheiros"],
+        "summary": "Lista todos os engenheiros",
+        "responses": {
+          "200": {
+            "description": "Lista de engenheiros",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/Engenheiro" }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["Engenheiros"],
+        "summary": "Cadastra um novo engenheiro",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/Engenheiro" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Engenheiro cadastrado com sucesso"
+          }
+        }
+      }
+    },
+    "/engenheiros/{id}": {
+      "get": {
+        "tags": ["Engenheiros"],
+        "summary": "Busca um engenheiro pelo ID",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": { "type": "integer" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Engenheiro encontrado"
+          },
+          "404": {
+            "description": "Engenheiro não encontrado"
+          }
+        }
+      }
+    },
+    "/trabalhadores": {
+      "get": {
+        "tags": ["Trabalhadores"],
+        "summary": "Lista todos os trabalhadores",
+        "responses": {
+          "200": {
+            "description": "Lista de trabalhadores",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/Trabalhador" }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["Trabalhadores"],
+        "summary": "Cadastra um novo trabalhador",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/Trabalhador" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Trabalhador cadastrado com sucesso"
+          }
+        }
+      }
+    },
+    "/trabalhadores/{id}": {
+      "get": {
+        "tags": ["Trabalhadores"],
+        "summary": "Busca um trabalhador pelo ID",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": { "type": "integer" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Trabalhador encontrado"
+          },
+          "404": {
+            "description": "Trabalhador não encontrado"
+          }
+        }
+      }
+    }
+  }
+}
